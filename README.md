@@ -215,3 +215,27 @@ Every pull-request run uploads `visual-regression-<PR number>` with `if: always(
   filter that matches no wallet falls back to `all`, so the list can never render
   an empty state while real fund sources exist.
 - Regression coverage: `src/tests/fund-source-identity.test.tsx`.
+
+## Kategori Transaksi — filter & pencarian
+
+Sheet **Pengaturan → Kategori Transaksi** kini memakai kontrak filter yang sama
+dengan Sumber Dana:
+
+- `category-search` (pencarian nama), `category-filter-type` (Semua/Pemasukan/
+  Pengeluaran), `category-sort`, dan `category-reset-filter`.
+- `category-filter-summary` menampilkan `ditampilkan/total` ketika ada baris
+  yang tersembunyi oleh filter.
+- Empty state `category-empty` membedakan "belum ada kategori" dari "tidak ada
+  hasil filter" dan menawarkan tombol reset.
+
+**Perbaikan bug "3 kategori, hanya 2 tampil":** filter jenis tersimpan
+(`tmab-category-type`) menyembunyikan kategori tanpa kontrol yang terlihat.
+Sekarang filter dirender, dan nilai tersimpan yang menyembunyikan seluruh data
+disanitasi kembali ke `all` (`sanitizeFilters`) dengan notifikasi
+`category-filter-reset-notice`.
+
+## CI artefak laporan
+
+`.github/workflows/ci.yml` menjalankan unit, E2E, dan axe-core secara terpisah
+dengan reporter JUnit + HTML ke `reports/`, lalu mengunggahnya sebagai artefak
+`test-reports-*` pada setiap PR dan menerbitkan ringkasan JUnit sebagai check.
