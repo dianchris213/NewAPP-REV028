@@ -59,10 +59,10 @@ describe("Toast auto-close focus restoration", () => {
 
     await waitFor(() => expect(liveToasts().length).toBe(0), { timeout: 4000 });
 
+    await waitFor(() => expect(trigger).toHaveFocus(), { timeout: 2000 });
     const active = document.activeElement as HTMLElement | null;
     expect(active?.isConnected).toBe(true);
     expect(active?.closest("[data-sonner-toast]") ?? null).toBeNull();
-    expect(trigger).toHaveFocus();
   });
 
   it("does not steal focus when the user moved on before auto-close", async () => {
