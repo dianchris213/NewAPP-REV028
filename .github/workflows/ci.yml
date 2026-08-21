@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Prepare report directory
+        run: mkdir -p reports
+
       - name: Lint
         run: bun run lint
 
@@ -31,13 +34,56 @@ jobs:
         run: bun run typecheck
 
       - name: Unit tests
-        run: bunx vitest run --reporter=verbose --exclude "src/tests/{a11y,toast-a11y,toast-focus-sequence,toast-close-keyboard,fund-source-reload-recovery,delete-undo-flow,fund-source-add-flow}.test.tsx"
+        run: |
+          bunx vitest run \
+            --reporter=verbose --reporter=junit --reporter=html \
+            --outputFile.junit=reports/unit-junit.xml \
+            --outputFile.html=reports/unit-html/index.html \
+            --exclude "src/tests/{a11y,toast-a11y,toast-focus-sequence,toast-close-keyboard,toast-duplicate-regression,toast-autoclose-focus,fund-source-reload-recovery,fund-source-reload-flapping,delete-undo-flow,fund-source-add-flow}.test.tsx"
 
       - name: E2E flows
-        run: bunx vitest run src/tests/fund-source-reload-recovery.test.tsx src/tests/fund-source-add-flow.test.tsx src/tests/delete-undo-flow.test.tsx src/tests/toast-close-keyboard.test.tsx
+        if: ${{ !cancelled() }}
+        run: |
+          bunx vitest run \
+            src/tests/fund-source-reload-recovery.test.tsx \
+            src/tests/fund-source-reload-flapping.test.tsx \
+            src/tests/fund-source-add-flow.test.tsx \
+            src/tests/delete-undo-flow.test.tsx \
+            src/tests/toast-close-keyboard.test.tsx \
+            src/tests/toast-duplicate-regression.test.tsx \
+            src/tests/toast-autoclose-focus.test.tsx \
+            --reporter=verbose --reporter=junit --reporter=html \
+            --outputFile.junit=reports/e2e-junit.xml \
+            --outputFile.html=reports/e2e-html/index.html
 
       - name: Accessibility (axe-core)
-        run: bunx vitest run src/tests/a11y.test.tsx src/tests/toast-a11y.test.tsx src/tests/toast-focus-sequence.test.tsx
+        if: ${{ !cancelled() }}
+        run: |
+          bunx vitest run \
+            src/tests/a11y.test.tsx \
+            src/tests/toast-a11y.test.tsx \
+            src/tests/toast-focus-sequence.test.tsx \
+            --reporter=verbose --reporter=junit --reporter=html \
+            --outputFile.junit=reports/axe-junit.xml \
+            --outputFile.html=reports/axe-html/index.html
+
+      - name: Upload test reports (JUnit + HTML)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            reports/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publish JUnit summary
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: reports/*-junit.xml
+          check_name: Test results (unit, E2E, axe)
+          fail_on_failure: false
 
       - name: Production build
         run: bun run build
