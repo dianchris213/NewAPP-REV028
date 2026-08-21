@@ -317,9 +317,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCategories((prev) => {
       const duplicate = prev.some(
         (c) =>
-          c.type === input.type &&
+          c.type === type &&
           c.name.toLowerCase() === name.toLowerCase() &&
-          (c.walletId ?? "") === (input.walletId ?? ""),
+          (c.walletId ?? "") === walletId,
       );
       if (duplicate) return prev;
       ok = true;
@@ -328,8 +328,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         {
           id: `c${Date.now()}${Math.round(Math.random() * 1000)}`,
           name,
-          type: input.type,
-          ...(input.walletId ? { walletId: input.walletId } : {}),
+          type,
+          ...(walletId ? { walletId } : {}),
         },
       ];
     });
