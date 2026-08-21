@@ -1439,10 +1439,23 @@ function CategorySheet({ onClose }: { onClose: () => void }) {
           ) : (
             <li
               data-testid="category-empty"
-              className="py-4 text-center text-[12px] text-on-surface-variant/70"
+              className="flex flex-col items-center gap-3 px-3 py-6 text-center text-[12px] text-on-surface-variant/70"
             >
-              {query.trim() ? copy.noCategoryResults : copy.categoriesEmpty}
+              <span className="text-[13px] font-bold text-on-surface">
+                {categories.length ? copy.noCategoryResults : copy.categoriesEmpty}
+              </span>
+              {categories.length ? (
+                <button
+                  type="button"
+                  data-testid="category-empty-reset"
+                  onClick={resetFilters}
+                  className="rounded-full border border-outline-variant/30 px-4 py-2 text-[12px] font-semibold text-on-surface-variant focus-visible:ring-2 focus-visible:ring-primary/60"
+                >
+                  {copy.resetFilter}
+                </button>
+              ) : null}
             </li>
+
           )}
         </ul>
       </div>
