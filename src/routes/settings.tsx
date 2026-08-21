@@ -17,6 +17,14 @@ import {
   type TxType,
   type WalletType,
 } from "@/lib/app-store";
+import {
+  parseCategoryInput,
+  parseCategoryName,
+  toCategoryQuery,
+  toCategorySort,
+  toCategoryTypeFilter,
+  type CategorySortValue,
+} from "@/lib/category-schema";
 import { isString, usePersistentState } from "@/lib/persistent-filter";
 import { filterWallets, parseStoredTypeFilter, sanitizeFilters } from "@/lib/fund-source-filter";
 import { FundSourceRow } from "@/components/FundSourceRow";
