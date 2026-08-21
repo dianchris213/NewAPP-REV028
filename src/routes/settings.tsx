@@ -1234,7 +1234,19 @@ function CategorySheet({ onClose }: { onClose: () => void }) {
           {status}
         </p>
 
-        <div className="mt-4 flex items-center gap-2">
+        {filterNotice ? (
+          <p
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            data-testid="category-filter-reset-notice"
+            className="mt-2 m-0 rounded-2xl bg-surface-container px-4 py-2 text-[11px] font-semibold text-on-surface-variant"
+          >
+            {filterNotice}
+          </p>
+        ) : null}
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
           <label className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="sr-only">{copy.searchCategories}</span>
             <input
@@ -1244,9 +1256,31 @@ function CategorySheet({ onClose }: { onClose: () => void }) {
               placeholder={copy.searchCategories}
               aria-label={copy.searchCategories}
               data-testid="category-search"
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setFilterNotice("");
+                setFilterTouched(true);
+                setQuery(e.target.value);
+              }}
               className="h-11 w-full rounded-2xl border border-outline-variant/30 bg-surface-container px-4 text-[14px] text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
             />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="sr-only">{copy.categoryScope}</span>
+            <select
+              value={typeFilter}
+              aria-label={copy.allTypes}
+              data-testid="category-filter-type"
+              onChange={(e) => {
+                setFilterNotice("");
+                setFilterTouched(true);
+                setTypeFilter(e.target.value as TxType | "all");
+              }}
+              className="h-11 rounded-2xl border border-outline-variant/30 bg-surface-container px-3 text-[13px] text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            >
+              <option value="all">{copy.allTypes}</option>
+              <option value="income">{copy.income}</option>
+              <option value="expense">{copy.expense}</option>
+            </select>
           </label>
           <label className="flex flex-col gap-1">
             <span className="sr-only">{copy.sortLabel}</span>
@@ -1268,7 +1302,29 @@ function CategorySheet({ onClose }: { onClose: () => void }) {
               ))}
             </select>
           </label>
+          {filtersDirty ? (
+            <button
+              type="button"
+              data-testid="category-reset-filter"
+              onClick={resetFilters}
+              className="h-11 shrink-0 rounded-2xl border border-outline-variant/30 px-4 text-[12px] font-semibold text-on-surface-variant focus-visible:ring-2 focus-visible:ring-primary/60"
+            >
+              {copy.resetFilter}
+            </button>
+          ) : null}
         </div>
+
+        {categories.length && filtersReady && hiddenCount > 0 ? (
+          <p
+            role="status"
+            aria-live="polite"
+            data-testid="category-filter-summary"
+            className="mt-2 m-0 rounded-2xl bg-surface-container px-4 py-2 text-[11px] font-semibold text-on-surface-variant"
+          >
+            {`${list.length}/${categories.length} · ${copy.resetFilter}`}
+          </p>
+        ) : null}
+
 
         <ul className="mt-3 list-none rounded-2xl bg-surface-container px-4 py-1">
           {list.length ? (
