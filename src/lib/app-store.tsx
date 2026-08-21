@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { parseCategoryInput, parseCategoryName } from "./category-schema";
 import { persistWallet, WalletApiError } from "./wallet-api";
 import { captureApiError } from "./monitoring";
 
@@ -311,8 +312,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Single strict gate: schema-parsed + sanitized before touching state.
     const parsed = parseCategoryInput(input);
     if (!parsed) return false;
-    const name = parsed.name;
-    input = { name, type: parsed.type, ...(parsed.walletId ? { walletId: parsed.walletId } : {}) };
+    const { name, type, walletId } = parsed;
     let ok = false;
     setCategories((prev) => {
       const duplicate = prev.some(
