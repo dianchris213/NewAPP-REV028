@@ -756,7 +756,7 @@ export function FundSourceSheet({ onClose }: { onClose: () => void }) {
               onChange={(e) => {
                 setFilterNotice("");
                 setFilterTouched(true);
-                setQuery(e.target.value);
+                setQuery(toCategoryQuery(e.target.value));
               }}
               className="h-11 min-w-0 flex-1 rounded-2xl border border-outline-variant/30 bg-surface-container px-4 text-[13px] text-on-surface outline-none placeholder:text-on-surface-variant/50 focus-visible:ring-2 focus-visible:ring-primary/60"
             />
@@ -1000,7 +1000,7 @@ export function ConfirmDeleteDialog({
   );
 }
 
-type CategorySort = "name-asc" | "name-desc" | "most-used";
+type CategorySort = CategorySortValue;
 
 const CATEGORY_SORTS: CategorySort[] = ["name-asc", "name-desc", "most-used"];
 
@@ -1102,7 +1102,8 @@ export function CategorySheet({ onClose }: { onClose: () => void }) {
   };
 
   const commitRename = (id: string) => {
-    const ok = renameCategory(id, editingName);
+    const clean = parseCategoryName(editingName);
+    const ok = clean !== null && renameCategory(id, clean);
     if (!ok) {
       setRowError({ id, message: copy.invalidCategory });
       announce(copy.invalidCategory, false);
@@ -1126,7 +1127,10 @@ export function CategorySheet({ onClose }: { onClose: () => void }) {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const ok = addCategory({ name, type, ...(walletId ? { walletId } : {}) });
+    // Guarded at the UI edge as well: never hand unparsed input to the store.
+    const parsed = parseCategoryInput({ name, type, walletId });
+    if (!parsed) return setError(copy.invalidCategory);
+    const ok = addCategory(parsed.walletId ? parsed : { name: parsed.name, type: parsed.type });
     if (!ok) return setError(copy.invalidCategory);
     setName("");
     setError(undefined);
@@ -1255,7 +1259,7 @@ export function CategorySheet({ onClose }: { onClose: () => void }) {
               onChange={(e) => {
                 setFilterNotice("");
                 setFilterTouched(true);
-                setQuery(e.target.value);
+                setQuery(toCategoryQuery(e.target.value));
               }}
               className="h-11 w-full rounded-2xl border border-outline-variant/30 bg-surface-container px-4 text-[14px] text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
             />
@@ -1269,7 +1273,7 @@ export function CategorySheet({ onClose }: { onClose: () => void }) {
               onChange={(e) => {
                 setFilterNotice("");
                 setFilterTouched(true);
-                setTypeFilter(e.target.value as TxType | "all");
+                setTypeFilter(toCategoryTypeFilter(e.target.value));
               }}
               className="h-11 rounded-2xl border border-outline-variant/30 bg-surface-container px-3 text-[13px] text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
             >
@@ -1284,7 +1288,7 @@ export function CategorySheet({ onClose }: { onClose: () => void }) {
               value={sort}
               aria-label={copy.sortLabel}
               data-testid="category-sort"
-              onChange={(e) => setSort(e.target.value as CategorySort)}
+              onChange={(e) => setSort(toCategorySort(e.target.value))}
               className="h-11 rounded-2xl border border-outline-variant/30 bg-surface-container px-3 text-[13px] text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
             >
               {CATEGORY_SORTS.map((option) => (
