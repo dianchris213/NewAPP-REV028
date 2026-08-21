@@ -308,8 +308,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addCategory = useCallback((input: { name: string; type: TxType; walletId?: string }) => {
-    const name = input.name.trim().replace(/\s+/g, " ");
-    if (name.length < 2 || name.length > 24) return false;
+    // Single strict gate: schema-parsed + sanitized before touching state.
+    const parsed = parseCategoryInput(input);
+    if (!parsed) return false;
+    const name = parsed.name;
+    input = { name, type: parsed.type, ...(parsed.walletId ? { walletId: parsed.walletId } : {}) };
     let ok = false;
     setCategories((prev) => {
       const duplicate = prev.some(
@@ -348,8 +351,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const renameCategory = useCallback((id: string, next: string) => {
-    const name = next.trim().replace(/\s+/g, " ");
-    if (name.length < 2 || name.length > 24) return false;
+    const name = parseCategoryName(next);
+    if (!name) return false;
     let ok = false;
     setCategories((prev) => {
       const target = prev.find((c) => c.id === id);
