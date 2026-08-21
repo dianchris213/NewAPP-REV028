@@ -109,4 +109,3 @@ export const toastSuccess = (message: string, options?: ToastOptions) =>
 
 export const toastInfo = (message: string, options?: ToastOptions) =>
   withFocusReturn("info", message, options);
-

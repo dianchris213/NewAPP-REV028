@@ -53,8 +53,8 @@ export function parseStoredFilters(
   }
   const raw = (value ?? {}) as Record<string, unknown>;
   return {
-    query: typeof raw['query'] === "string" ? raw['query'].slice(0, 40) : "",
-    type: parseStoredTypeFilter(raw['type'], availableTypes),
+    query: typeof raw["query"] === "string" ? raw["query"].slice(0, 40) : "",
+    type: parseStoredTypeFilter(raw["type"], availableTypes),
   };
 }
 

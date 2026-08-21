@@ -53,7 +53,6 @@ export function usePersistentState<T>(
       /* ignore */
     }
     // initial is a literal in every call site.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   return [value, setValue, reset, restored] as const;

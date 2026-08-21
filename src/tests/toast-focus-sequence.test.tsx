@@ -82,7 +82,6 @@ describe("Sequential toasts — focus consistency", () => {
       const active = document.activeElement as HTMLElement | null;
       expect(active === null || active.isConnected).toBe(true);
       expect(active?.closest("[data-sonner-toast]") ?? null).toBeNull();
-
     }
 
     // Focus landed back on a real, still-mounted control.

@@ -12,7 +12,6 @@ import {
   formatIDR,
   type Wallet,
   type Category,
-
   type Language,
   type Settings as SettingsState,
   type TxType,
@@ -274,7 +273,6 @@ const CAT_QUERY_KEY = "tmab-category-query";
 const CAT_TYPE_KEY = "tmab-category-type";
 const isCategoryTypeFilter = (value: unknown): value is TxType | "all" =>
   value === "all" || value === "income" || value === "expense";
-
 
 /**
  * Undo snackbar with a visible countdown. Fully keyboard driven: focus lands on
@@ -1091,8 +1089,6 @@ export function CategorySheet({ onClose }: { onClose: () => void }) {
   const hiddenCount = categories.length - list.length;
   const filtersReady = queryRestored && typeRestored;
 
-
-
   const startRename = (id: string, current: string) => {
     setEditingId(id);
     setEditingName(current);
@@ -1325,7 +1321,6 @@ export function CategorySheet({ onClose }: { onClose: () => void }) {
           </p>
         ) : null}
 
-
         <ul className="mt-3 list-none rounded-2xl bg-surface-container px-4 py-1">
           {list.length ? (
             list.map((c) => {
@@ -1455,7 +1450,6 @@ export function CategorySheet({ onClose }: { onClose: () => void }) {
                 </button>
               ) : null}
             </li>
-
           )}
         </ul>
       </div>
