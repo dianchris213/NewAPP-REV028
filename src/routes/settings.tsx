@@ -1031,20 +1031,27 @@ function CategorySheet({ onClose }: { onClose: () => void }) {
   // tabs above: the tabs choose the type of the category being *created*.
   // Coupling them made search look broken — typing the name of an expense
   // category while the income tab was active returned nothing.
-  const [query, setQuery, resetQuery] = usePersistentState<string>(CAT_QUERY_KEY, "", isString);
-  const [typeFilter, setTypeFilter, resetTypeFilter] = usePersistentState<TxType | "all">(
-    CAT_TYPE_KEY,
-    "all",
-    isCategoryTypeFilter,
+  const [query, setQuery, resetQuery, queryRestored] = usePersistentState<string>(
+    CAT_QUERY_KEY,
+    "",
+    isString,
   );
+  const [typeFilter, setTypeFilter, resetTypeFilter, typeRestored] = usePersistentState<
+    TxType | "all"
+  >(CAT_TYPE_KEY, "all", isCategoryTypeFilter);
   const [sort, setSort] = useState<CategorySort>("name-asc");
+  const [filterNotice, setFilterNotice] = useState("");
+  // Only filters restored from storage are validated against the loaded data;
+  // filters the user changed in this session are respected as-is.
+  const [filterTouched, setFilterTouched] = useState(false);
 
   const filtersDirty = !!query.trim() || typeFilter !== "all";
 
   const resetFilters = useCallback(() => {
     resetQuery();
     resetTypeFilter();
-  }, [resetQuery, resetTypeFilter]);
+    setFilterNotice(copy.filtersResetAll);
+  }, [resetQuery, resetTypeFilter, copy.filtersResetAll]);
 
   const list = useMemo(() => {
     const rows = filterWallets(categories, { query, type: typeFilter }) as Category[];
@@ -1058,7 +1065,32 @@ function CategorySheet({ onClose }: { onClose: () => void }) {
     });
   }, [categories, categoryUsage, query, sort, typeFilter]);
 
+  // Root cause of "3 categories exist but only 2 are listed": a persisted
+  // type filter (e.g. "expense") kept hiding the other categories with no
+  // visible control to clear it. The filter is now rendered *and* a stored
+  // value that hides data is sanitized back to "all".
+  useEffect(() => {
+    if (!queryRestored || !typeRestored || filterTouched) return;
+    const result = sanitizeFilters(categories, { query, type: typeFilter });
+    if (!result.changed) return;
+    if (result.filters.type !== typeFilter) resetTypeFilter();
+    if (result.filters.query !== query) resetQuery();
+    setFilterNotice(copy.filtersResetAll);
+  }, [
+    queryRestored,
+    typeRestored,
+    categories,
+    query,
+    typeFilter,
+    filterTouched,
+    resetQuery,
+    resetTypeFilter,
+    copy.filtersResetAll,
+  ]);
+
   const hiddenCount = categories.length - list.length;
+  const filtersReady = queryRestored && typeRestored;
+
 
 
   const startRename = (id: string, current: string) => {
