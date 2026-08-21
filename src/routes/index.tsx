@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Icon } from "@/components/Icon";
 import { TransactionList } from "@/components/TransactionList";
 import { useDragScroll } from "@/hooks/use-drag-scroll";
-import { formatIDR, useApp } from "@/lib/app-store";
+import { formatIDR, useApp, type WalletType } from "@/lib/app-store";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
@@ -30,39 +30,29 @@ export const Route = createFileRoute("/")({
 
 const RECENT_LIMIT = 3;
 
-const pockets = [
-  { name: "Tunai", icon: "payments", share: 0.25 },
-  { name: "Bank", icon: "account_balance", share: 0.6 },
-  { name: "E-Wallet", icon: "wallet", share: 0.15 },
-];
+/**
+ * Kantong Dana mirrors the user's own fund sources. There are NO demo pockets:
+ * a fresh account shows an honest empty state until a wallet is added manually
+ * in Pengaturan > Sumber Dana.
+ */
+const POCKET_ICON: Record<WalletType, string> = {
+  cash: "payments",
+  bank: "account_balance",
+  ewallet: "wallet",
+};
 
-const bills = [
-  {
-    name: "Listrik",
-    icon: "bolt",
-    due: "Jatuh tempo 25 Agu",
-    dueDate: "25 Agu",
-    dueDay: 25,
-    amount: 320000,
-    paid: 120000,
-  },
-  {
-    name: "Internet",
-    icon: "wifi",
-    due: "Jatuh tempo 28 Agu",
-    dueDate: "28 Agu",
-    dueDay: 28,
-    amount: 350000,
-    paid: 350000,
-  },
-];
+type Bill = {
+  id: string;
+  name: string;
+  icon: string;
+  dueDate: string;
+  dueDay: number;
+  amount: number;
+  paid: number;
+};
 
-/** Deterministic mock mapping of a transaction to a wallet pocket. */
-function pocketOf(id: string) {
-  let sum = 0;
-  for (let i = 0; i < id.length; i += 1) sum += id.charCodeAt(i);
-  return pockets[sum % pockets.length]!.name;
-}
+/** Monthly bills are user-entered as well — nothing is pre-filled. */
+const bills: Bill[] = [];
 
 function isToday(iso: string) {
   const d = new Date(iso);
@@ -87,7 +77,8 @@ function daysUntil(dueDay: number) {
 }
 
 function Home() {
-  const { user, transactions, balance, totalIncome, totalExpense, setAllTxOpen } = useApp();
+  const { user, transactions, wallets, balance, totalIncome, totalExpense, setAllTxOpen } =
+    useApp();
   const [balanceOpen, setBalanceOpen] = useState(false);
   const [activePocket, setActivePocket] = useState<string | null>(null);
   const pocketStrip = useDragScroll<HTMLDivElement>();
@@ -110,9 +101,13 @@ function Home() {
   const pocketItems = useMemo(
     () =>
       activePocket
-        ? transactions.filter((t) => isToday(t.date) && pocketOf(t.id) === activePocket)
+        ? transactions.filter((t) => isToday(t.date) && t.walletId === activePocket)
         : [],
     [transactions, activePocket],
+  );
+  const activePocketName = useMemo(
+    () => wallets.find((w) => w.id === activePocket)?.name ?? "",
+    [wallets, activePocket],
   );
 
   const copyBalance = useCallback(async () => {
@@ -171,35 +166,45 @@ function Home() {
       </div>
 
       <Section title="Kantong Dana">
-        <div
-          ref={pocketStrip.ref}
-          onKeyDown={pocketStrip.onKeyDown}
-          tabIndex={0}
-          role="list"
-          aria-label="Daftar kantong dana, geser ke samping untuk melihat lainnya"
-          className="swipe-x flex cursor-grab gap-3 pb-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-        >
-          {pockets.map((p) => (
-            <PocketCard
-              key={p.name}
-              name={p.name}
-              icon={p.icon}
-              amount={balance * p.share}
-              onOpen={openPocket}
-            />
-          ))}
-        </div>
+        {wallets.length ? (
+          <div
+            ref={pocketStrip.ref}
+            onKeyDown={pocketStrip.onKeyDown}
+            tabIndex={0}
+            role="list"
+            aria-label="Daftar kantong dana, geser ke samping untuk melihat lainnya"
+            className="swipe-x flex cursor-grab gap-3 pb-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          >
+            {wallets.map((w) => (
+              <PocketCard
+                key={w.id}
+                id={w.id}
+                name={w.name}
+                icon={POCKET_ICON[w.type]}
+                amount={w.balance}
+                onOpen={openPocket}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon="wallet"
+            title="Belum ada kantong dana"
+            description="Tambahkan sumber dana di Pengaturan untuk mulai memantau saldo."
+          />
+        )}
       </Section>
 
       <Section title="Tagihan Bulanan">
-        <ul className="glass-card rounded-[18px] px-4">
+        {bills.length ? (
+          <ul className="glass-card rounded-[18px] px-4">
           {bills.map((b) => {
             const days = daysUntil(b.dueDay);
             const remaining = Math.max(b.amount - b.paid, 0);
             const urgent = days <= 3;
             return (
               <li
-                key={b.name}
+                key={b.id}
                 className="flex items-center gap-3 border-b border-outline-variant/20 py-3 last:border-0"
               >
                 <span
@@ -231,7 +236,14 @@ function Home() {
               </li>
             );
           })}
-        </ul>
+          </ul>
+        ) : (
+          <EmptyState
+            icon="receipt_long"
+            title="Belum ada tagihan"
+            description="Tagihan bulanan akan muncul setelah Anda menambahkannya."
+          />
+        )}
       </Section>
 
       <Section
@@ -274,33 +286,41 @@ function Home() {
         title="Rincian Saldo"
         subtitle={`Total ${formatIDR(balance)}`}
       >
-        <ul className="glass-card rounded-[18px] px-4">
-          {pockets.map((p) => (
-            <li
-              key={p.name}
-              className="flex items-center gap-3 border-b border-outline-variant/20 py-3 last:border-0"
-            >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-variant text-primary">
-                <Icon name={p.icon} className="text-[18px]" />
-              </span>
-              <div className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-body font-medium text-on-surface">{p.name}</span>
-                <span className="text-meta text-on-surface-variant/80">
-                  {`${Math.round(p.share * 100)}% dari total`}
+        {wallets.length ? (
+          <ul className="glass-card rounded-[18px] px-4">
+            {wallets.map((w) => (
+              <li
+                key={w.id}
+                className="flex items-center gap-3 border-b border-outline-variant/20 py-3 last:border-0"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-variant text-primary">
+                  <Icon name={POCKET_ICON[w.type]} className="text-[18px]" />
                 </span>
-              </div>
-              <span className="shrink-0 text-body font-semibold text-on-surface">
-                {formatIDR(balance * p.share)}
-              </span>
-            </li>
-          ))}
-        </ul>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-body font-medium text-on-surface">{w.name}</span>
+                  <span className="text-meta text-on-surface-variant/80">
+                    {balance > 0 ? `${Math.round((w.balance / balance) * 100)}% dari total` : "0% dari total"}
+                  </span>
+                </div>
+                <span className="shrink-0 text-body font-semibold text-on-surface">
+                  {formatIDR(w.balance)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyState
+            icon="wallet"
+            title="Belum ada rincian saldo"
+            description="Saldo akan terbagi otomatis setelah sumber dana ditambahkan."
+          />
+        )}
       </FullScreenModal>
 
       <FullScreenModal
         open={activePocket !== null}
         onClose={closePocket}
-        title={`Transaksi Hari Ini - ${activePocket ?? ""}`}
+        title={`Transaksi Hari Ini - ${activePocketName}`}
         subtitle={`${pocketItems.length} entri`}
       >
         {pocketItems.length ? (
