@@ -51,20 +51,8 @@ export type AppNotification = {
   time: string;
 };
 
-export const defaultNotifications: AppNotification[] = [
-  {
-    id: "n1",
-    title: "Transaksi tersimpan",
-    body: "Pengeluaran Rp 45.000 (Transport) berhasil dicatat.",
-    time: "5 menit lalu",
-  },
-  {
-    id: "n2",
-    title: "Ringkasan mingguan siap",
-    body: "Pengeluaran minggu ini 12% lebih rendah dari minggu lalu.",
-    time: "Kemarin",
-  },
-];
+/** Notifications start empty: nothing is announced until the user acts. */
+export const defaultNotifications: AppNotification[] = [];
 
 export type TxFilters = {
   month: string;
@@ -215,37 +203,12 @@ const seedWallets = (): Wallet[] => [];
 
 const seedWalletActivity = (): WalletActivity[] => [];
 
-const seedTransactions = (): Transaction[] => {
-  const now = Date.now();
-  const day = 86_400_000;
-  const mk = (
-    id: string,
-    type: TxType,
-    amount: number,
-    category: string,
-    note: string,
-    daysAgo: number,
-  ): Transaction => ({
-    id,
-    type,
-    amount,
-    category,
-    note,
-    date: new Date(now - daysAgo * day).toISOString(),
-  });
-  return [
-    mk("s1", "income", 7500000, "Gaji", "Gaji bulanan", 2),
-    mk("s2", "expense", 185000, "Makanan", "Belanja mingguan", 0),
-    mk("s3", "expense", 45000, "Transport", "Ojek online", 0),
-    mk("s4", "expense", 320000, "Tagihan", "Listrik", 5),
-    mk("s5", "income", 1200000, "Freelance", "Proyek desain", 12),
-    mk("s6", "expense", 890000, "Belanja", "Sepatu lari", 40),
-    mk("s7", "expense", 250000, "Hiburan", "Langganan streaming", 120),
-    mk("s8", "income", 2000000, "Bonus", "Bonus kuartal", 200),
-    // Mock test transaction with a short note (Catatan Singkat)
-    mk("s9", "expense", 75000, "Makanan", "Catatan singkat: makan siang tim", 1),
-  ];
-};
+/**
+ * Transactions are user-owned too: a fresh install (and a fresh login/signup)
+ * starts with an empty history, zero balance and no demo rows. Everything has
+ * to be entered manually by the user.
+ */
+const seedTransactions = (): Transaction[] => [];
 
 type AppState = {
   hydrated: boolean;
@@ -759,14 +722,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           categories?: Category[];
         };
         setUser(parsed.user ?? null);
-        if (parsed.transactions?.length) {
-          // Keep existing data; only add the mock note transaction if missing.
-          const mock = seedTransactions().find((t) => t.id === "s9")!;
-          const hasMock = parsed.transactions.some((t) => t.id === "s9");
-          setTransactions(hasMock ? parsed.transactions : [mock, ...parsed.transactions]);
-        } else {
-          setTransactions(seedTransactions());
-        }
+        // Only genuine, user-entered rows are restored — no demo data is
+        // injected when the stored history is empty.
+        setTransactions(Array.isArray(parsed.transactions) ? parsed.transactions : []);
         setSettings({ ...defaultSettings, ...(parsed.settings ?? {}) });
         if (parsed.language === "id" || parsed.language === "en") setLanguage(parsed.language);
         if (parsed.wallets !== undefined) {
