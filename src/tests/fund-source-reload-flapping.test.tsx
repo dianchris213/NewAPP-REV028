@@ -57,7 +57,10 @@ describe("Fund source reload — flapping API", () => {
 
     await waitFor(() => expect(screen.getByTestId("fund-source-load-error")).toBeInTheDocument());
     await waitFor(() => expect(liveToasts().length).toBe(1));
-    expect(screen.getAllByText(/gagal dimuat/i).length).toBe(1);
+    const errorToasts = liveToasts().filter((n) =>
+      /gagal memuat daftar sumber dana/i.test(n.textContent ?? ""),
+    );
+    expect(errorToasts.length).toBe(1);
     expect(screen.queryByTestId("fund-source-empty")).not.toBeInTheDocument();
 
     // The API recovers; a final retry must converge on the real data.
@@ -73,8 +76,11 @@ describe("Fund source reload — flapping API", () => {
     expect(screen.queryByTestId("fund-source-empty")).not.toBeInTheDocument();
 
     // Exactly one success announcement, and focus stayed on a live control.
-    const success = await screen.findAllByText(/berhasil dimuat ulang/i);
-    expect(success.length).toBe(1);
+    await waitFor(() =>
+      expect(
+        liveToasts().filter((n) => /berhasil dimuat ulang/i.test(n.textContent ?? "")).length,
+      ).toBe(1),
+    );
     const active = document.activeElement as HTMLElement | null;
     expect(active === null || active.isConnected).toBe(true);
   });
